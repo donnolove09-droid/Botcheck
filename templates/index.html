@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Telegram ID Finder</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: linear-gradient(135deg, #0d1117 0%, #1a1f2e 100%);
+  color: #c9d1d9;
+  font-family: system-ui, -apple-system, sans-serif;
+  min-height: 100vh;
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px;
+}
+.card {
+  background: #161b22; border: 1px solid #30363d;
+  border-radius: 16px; padding: 40px;
+  max-width: 480px; width: 100%;
+  box-shadow: 0 20px 60px rgba(0,0,0,.5);
+}
+.logo { font-size: 48px; text-align: center; margin-bottom: 8px; }
+h1 { font-size: 24px; text-align: center; color: #58a6ff; margin-bottom: 8px; }
+.subtitle { text-align: center; color: #8b949e; font-size: 13px; margin-bottom: 32px; }
+.step {
+  background: #0d1117; border-radius: 10px; padding: 16px;
+  margin-bottom: 12px; border: 1px solid #21262d;
+  font-size: 13px; line-height: 1.7;
+}
+.step b { color: #58a6ff; }
+.btn {
+  display: block; text-align: center; padding: 14px;
+  background: #238636; color: #fff; text-decoration: none;
+  border-radius: 10px; font-weight: 600; margin: 20px 0;
+  transition: background .2s;
+}
+.btn:hover { background: #2ea043; }
+.input-group { display: flex; gap: 8px; margin-top: 12px; }
+input[type="text"] {
+  flex: 1; padding: 14px 16px; background: #0d1117;
+  border: 1px solid #30363d; border-radius: 10px;
+  color: #c9d1d9; font-size: 18px; letter-spacing: 4px;
+  text-align: center; font-weight: 600; font-family: monospace;
+}
+input[type="text"]:focus {
+  outline: none; border-color: #58a6ff;
+  box-shadow: 0 0 0 3px rgba(88,166,255,.15);
+}
+button {
+  padding: 14px 24px; background: #238636; color: #fff;
+  border: 0; border-radius: 10px; font-weight: 600;
+  font-size: 15px; cursor: pointer; transition: background .2s;
+}
+button:hover { background: #2ea043; }
+button:disabled { background: #30363d; cursor: not-allowed; }
+.result {
+  margin-top: 20px; padding: 20px; border-radius: 10px;
+  text-align: center; display: none;
+}
+.result.ok { background: #0f2a1a; border: 1px solid #3fb950; display: block; }
+.result.err { background: #2d1618; border: 1px solid #f85149; display: block; }
+.result .label {
+  font-size: 12px; color: #8b949e; margin-bottom: 8px;
+  text-transform: uppercase; letter-spacing: 1px;
+}
+.result .id-value {
+  font-size: 28px; font-weight: 700; font-family: monospace;
+  color: #3fb950; word-break: break-all; cursor: pointer;
+  padding: 8px; border-radius: 6px; transition: background .2s;
+}
+.result .id-value:hover { background: rgba(63,185,80,.1); }
+.result.err .id-value { color: #f85149; font-size: 14px; }
+.copy-hint { font-size: 11px; color: #8b949e; margin-top: 8px; }
+.footer { text-align: center; font-size: 11px; color: #484f58; margin-top: 24px; }
+code { background: #21262d; padding: 2px 6px; border-radius: 4px; font-family: monospace; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">🆔</div>
+  <h1>Telegram ID Finder</h1>
+  <p class="subtitle">Lấy ID Telegram của bạn trong 30 giây</p>
+
+  <div class="step"><b>Bước 1:</b> Bấm nút để mở bot</div>
+
+  <a class="btn" href="https://t.me/{{ bot_username }}" target="_blank">
+    ✈️ Mở Bot Telegram
+  </a>
+
+  <div class="step">
+    <b>Bước 2:</b> Gõ <code>/start</code> → Bot trả về mã 6 số
+  </div>
+
+  <div class="step">
+    <b>Bước 3:</b> Nhập mã vào ô bên dưới
+    <div class="input-group">
+      <input type="text" id="code" placeholder="000000" maxlength="6"
+             inputmode="numeric" autocomplete="off">
+      <button id="btn" onclick="verify()">Tra cứu</button>
+    </div>
+  </div>
+
+  <div class="result" id="result"></div>
+
+  <div class="footer">🔒 Mã tự hủy sau khi dùng • Không lưu trữ</div>
+</div>
+
+<script>
+const input = document.getElementById('code');
+const btn = document.getElementById('btn');
+const result = document.getElementById('result');
+
+input.addEventListener('input', e => {
+  e.target.value = e.target.value.replace(/\D/g, '').slice(0, 6);
+});
+input.addEventListener('keydown', e => {
+  if (e.key === 'Enter') verify();
+});
+
+async function verify() {
+  const code = input.value.trim();
+  if (code.length !== 6) { showErr('Vui lòng nhập đủ 6 số'); return; }
+
+  btn.disabled = true;
+  btn.textContent = '...';
+  result.className = 'result';
+
+  try {
+    const r = await fetch('/api/verify', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({code})
+    });
+    const data = await r.json();
+    if (data.ok) {
+      showOk(data.telegram_id, data.name);
+      input.value = '';
+    } else {
+      showErr(data.error || 'Lỗi không xác định');
+    }
+  } catch (e) {
+    showErr('Lỗi kết nối: ' + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Tra cứu';
+  }
+}
+
+function showOk(id, name) {
+  result.className = 'result ok';
+  result.innerHTML = `
+    ${name ? `<div style="color:#8b949e;font-size:12px;margin-bottom:6px">👤 ${name}</div>` : ''}
+    <div class="label">✅ ID Telegram của bạn</div>
+    <div class="id-value" onclick="copyId('${id}')">${id}</div>
+    <div class="copy-hint">👆 Chạm để copy</div>
+  `;
+}
+
+function showErr(msg) {
+  result.className = 'result err';
+  result.innerHTML = `
+    <div class="label">❌ Lỗi</div>
+    <div class="id-value">${msg}</div>
+  `;
+}
+
+function copyId(id) {
+  navigator.clipboard.writeText(id).then(() => {
+    const el = document.querySelector('.id-value');
+    const old = el.textContent;
+    el.textContent = '✅ Đã copy!';
+    setTimeout(() => el.textContent = old, 1000);
+  });
+}
+</script>
+</body>
+</html>
