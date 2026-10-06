@@ -1,0 +1,32 @@
+services:
+  # ============ WEB ============
+  - type: web
+    name: getid-web
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn -b 0.0.0.0:$PORT -w 2 --threads 4 --timeout 120 app:app
+    envVars:
+      - key: BOT_USERNAME
+        sync: false
+      - key: INTERNAL_SECRET
+        sync: false
+      - key: PORT
+        value: "8080"
+
+  # ============ BOT ============
+  - type: worker
+    name: getid-bot
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python bot.py
+    envVars:
+      - key: BOT_TOKEN
+        sync: false
+      - key: BOT_USERNAME
+        sync: false
+      - key: WEB_URL
+        sync: false
+      - key: INTERNAL_SECRET
+        sync: false
